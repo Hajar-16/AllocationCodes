@@ -1,0 +1,229 @@
+% Read the shapefile
+additionalPoints = shaperead('Export_Output_6.shp');
+
+% Transform additional points coordinates
+for i = 1:length(additionalPoints)
+    additionalPoints(i).X = deg2km(additionalPoints(i).X) - 5635;
+    additionalPoints(i).Y = deg2km(additionalPoints(i).Y) - 2450;
+end
+
+% Extract X and Y coordinates
+additionalPointsX = [additionalPoints.X];
+additionalPointsY = [additionalPoints.Y];
+
+% Save the coordinates to a .mat file
+save('additionalPointsTransformed.mat', 'additionalPointsX', 'additionalPointsY');
+
+
+% Visualization Script
+% Load coastline and roads shapefiles for background
+coastline = shaperead('UAE.shp');
+roads = shaperead('Export_Output_2.shp');
+
+% Transform coastline coordinates
+for i = 1:length(coastline)
+    coastline(i).X = deg2km(coastline(i).X) - 5635;
+    coastline(i).Y = deg2km(coastline(i).Y) - 2450;
+end
+
+% Transform roads coordinates
+for i = 1:length(roads)
+    roads(i).X = deg2km(roads(i).X) - 5635;
+    roads(i).Y = deg2km(roads(i).Y) - 2450;
+end
+
+% Load the transformed additional points from the .mat file
+load('additionalPointsTransformed.mat');
+
+% Plot the background coastline and roads
+figure;
+mapshow(coastline);
+hold on;
+mapshow(roads);
+
+% Plot the additional points using scatter
+scatter(additionalPointsX, additionalPointsY, 'b.'); % Blue dots for additional points
+
+
+xlabel('km');
+ylabel('km');
+title('Optimal Locations');
+grid on; grid minor;
+
+
+
+
+
+
+
+clc; clear all; close all;
+
+%% GIS Data Loading and Processing
+
+coastline = shaperead('UAE.shp');
+coastline.X = deg2km(coastline.X) - 5635;
+coastline.Y = deg2km(coastline.Y) - 2450;
+roads = shaperead('Export_Output_2.shp');
+load('additionalPointsTransformed.mat'); % Load X and Y coordinates
+
+% Combine additionalPointsX and additionalPointsY into a matrix T
+T = [additionalPointsX' additionalPointsY'];
+
+roads = struct2cell(roads);
+roads_temp_x = [];
+roads_temp_y = [];
+for i = 1:size(roads, 2)
+    roads_temp_x = [roads_temp_x roads(3, i)];
+    roads_temp_y = [roads_temp_y roads(4, i)];
+end
+roads_temp_x = cell2mat(roads_temp_x);
+roads_temp_y = cell2mat(roads_temp_y);
+roads_temp_x = deg2km(roads_temp_x) - 5635;
+roads_temp_y = deg2km(roads_temp_y) - 2450;
+roads_temp_x = add_int_pts(add_int_pts(add_int_pts(add_int_pts(roads_temp_x))));
+roads_temp_y = add_int_pts(add_int_pts(add_int_pts(add_int_pts(roads_temp_y))));
+
+%% Model Implementation
+
+n = 5; % Number of points to select
+num_samples = 1000; % Number of random samples
+length_T = length(T);
+sampled_indices = zeros(num_samples, n); % Store sampled indices
+d = zeros(num_samples, 1); % Store minimum distances for each sample
+
+% Random sampling and distance calculation
+for m = 1:num_samples
+    sample_indices = randperm(length_T, n);
+    sampled_indices(m, :) = sample_indices;
+
+    d1 = [];
+    combos2 = nchoosek(sample_indices, 2);
+    for i = 1:length(combos2)
+        d1(i) = dist(T(combos2(i, 1), 1), T(combos2(i, 1), 2), T(combos2(i, 2), 1), T(combos2(i, 2), 2));
+    end
+    d(m) = min(d1);
+end
+
+% Find the best sample
+[M, I] = max(d);
+best_sample = sampled_indices(I, :);
+
+%% Results Plotting
+
+figure
+mapshow(coastline);
+grid on; grid minor;
+hold on
+
+% Plot best sample points
+for k = 1:n
+    plot(T(best_sample(k), 1), T(best_sample(k), 2), 'ro', 'LineWidth', 2) % Corrected the order of X and Y
+    hold on
+end
+
+% Plot all points and roads
+plot(T(:, 1), T(:, 2), 'kx', 'LineWidth', 1) % Corrected the order of X and Y
+plot(roads_temp_x, roads_temp_y, 'k', 'LineWidth', 1)
+xlabel('km')
+ylabel('km')
+
+%% Distance Function
+function d = dist(x1, y1, x2, y2)
+    d = sqrt((x1 - x2)^2 + (y1 - y2)^2);
+end
+
+%% Add Intermediate Points Function
+function expanded = add_int_pts(x)
+    expanded = [x(1)];
+    for i = 1:length(x) - 1
+        expanded = [expanded mean([x(i) x(i + 1)]) x(i + 1)];
+    end
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Results for 11 stations optimal locations (min distance 100 km).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Results for 6 stations optimal locations (min distance 150 km).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+
+
+
+Results for 3 stations optimal locations (min distance 300 km).
+
